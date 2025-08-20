@@ -1,0 +1,13 @@
+{
+  "exploration_variance": 0,
+  "state_entropy": -0.0,
+  "action_entropy": -0.0,
+  "reward_extrinsic_mean": NaN,
+  "health_mean": 0,
+  "total_zombie_defeated": 1,
+  "total_skeleton_defeated": 1,
+  "total_wake_ups": 0,
+  "total_stones_placed": 0,
+  "total_deaths": 100,
+  "total_episodes": 100
+}

@@ -1,0 +1,10 @@
+exploration_variance: 48.87078536421093
+state_entropy: 17.52791015755329
+action_entropy: 3.863405998657826
+extrinsic_reward_mean: -0.4931822419166565
+homeostatic_reward_mean: -0.4931822419166565
+health_mean: 8.176984089176829
+total_zombie_defeated: 4
+total_skeleton_defeated: 4
+total_wake_ups: 799
+total_stones_placed: 10855

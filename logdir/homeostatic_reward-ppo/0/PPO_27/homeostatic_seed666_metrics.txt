@@ -1,0 +1,11 @@
+exploration_variance: 39.72586436455017
+state_entropy: 17.575780935834143
+action_entropy: 3.7518688352961207
+reward_homeostatic_mean: -0.4841616203094076
+health_mean: 8.157103499745935
+total_zombie_defeated: 6
+total_skeleton_defeated: 1
+total_wake_ups: 394
+total_stones_placed: 6325
+total_deaths: 1381
+total_episodes: 1382
