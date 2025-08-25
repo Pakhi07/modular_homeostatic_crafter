@@ -21,7 +21,7 @@ except ImportError:
   DictSpace = collections.namedtuple('DictSpace', 'spaces')
   BaseClass = object
 
-# FPS = 30
+FPS = 30
 
 class Env(BaseClass):
     metadata = {

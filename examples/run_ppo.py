@@ -105,7 +105,7 @@ class AnalysisCallback(BaseCallback):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--env', type=str, default='homeostatic', choices=['crafter', 'homeostatic'])
-    parser.add_argument('--outdir', type=str, default='logdir/homeostatic_reward-ppo/0')
+    parser.add_argument('--outdir', type=str, default='logdir/homeostatic_reward-ppo/123')
     parser.add_argument('--steps', type=float, default=250000)  # Updated to 250k
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
@@ -116,8 +116,8 @@ def main():
         save_freq=100_000,  # save every 100k steps (adjust as needed)
         save_path=args.outdir,
         name_prefix=f"{args.env}_seed{args.seed}_checkpoint",
-        save_replay_buffer=True,
-        save_vecnormalize=True,
+        # save_replay_buffer=True,
+        # save_vecnormalize=True,
     )
     
     env_class = homeostatic_crafter.Env
