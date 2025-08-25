@@ -1,12 +1,16 @@
 import argparse
 import homeostatic_crafter
 import stable_baselines3
+from stable_baselines3 import PPO  # Make sure PPO is imported
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback, CallbackList
-from stable_baselines3.common.vec_env import DummyVecEnv, VecTransposeImage
+from stable_baselines3.common.vec_env import DummyVecEnv
 import numpy as np
 from collections import defaultdict
 import os
 import torch
+
+# Import your new custom policy
+from modular_policy import ModularMultiInputActorCriticPolicy
 
 class AnalysisCallback(BaseCallback):
     def __init__(self, log_interval=4096, verbose=0):
@@ -48,15 +52,15 @@ class AnalysisCallback(BaseCallback):
         if current_achievements.get('wake_up', 0) > self.achievements_unlocked.get('wake_up', 0):
             self.wake_ups += 1
             
-        # Update our running count of achievements for the next step (only one line needed)
         self.achievements_unlocked.update(current_achievements)
 
         self.rewards.append(info.get('reward', 0))
-        self.actions.append(action) # Use the action variable we already have
+        self.actions.append(action)
         
-        obs = self.locals['new_obs']['obs'][0]
-        state_key = str(obs.tobytes())
-        self.visited_states[state_key] += 1
+        # This part for visited_states is very memory intensive, consider simplifying or removing
+        # obs = self.locals['new_obs']['obs'][0]
+        # state_key = str(obs.tobytes())
+        # self.visited_states[state_key] += 1
         
         self.healths.append(info.get('player_health', 0))
         self.positions.append(info.get('player_pos', (0, 0)))
@@ -86,7 +90,7 @@ class AnalysisCallback(BaseCallback):
         action_counts = np.bincount(self.actions, minlength=self.training_env.get_attr('action_space')[0].n)
         action_probs = action_counts / (action_counts.sum() + 1e-10)
         action_entropy = -np.sum(action_probs * np.log2(action_probs + 1e-10))
-        reward_mean = np.mean(self.rewards)
+        reward_mean = np.mean(self.rewards) if self.rewards else 0
         health_mean = np.mean(self.healths) if self.healths else 0
         return {
             'exploration_variance': exploration_variance,
@@ -105,19 +109,17 @@ class AnalysisCallback(BaseCallback):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--env', type=str, default='homeostatic', choices=['crafter', 'homeostatic'])
-    parser.add_argument('--outdir', type=str, default='logdir/homeostatic_reward-ppo/0')
-    parser.add_argument('--steps', type=float, default=250000)  # Updated to 250k
+    parser.add_argument('--outdir', type=str, default='logdir/homeostatic_reward-modular-ppo/123')
+    parser.add_argument('--steps', type=float, default=250000)
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
 
     np.random.seed(args.seed)
 
     checkpoint_callback = CheckpointCallback(
-        save_freq=100_000,  # save every 100k steps (adjust as needed)
+        save_freq=100_000,
         save_path=args.outdir,
         name_prefix=f"{args.env}_seed{args.seed}_checkpoint",
-        save_replay_buffer=True,
-        save_vecnormalize=True,
     )
     
     env_class = homeostatic_crafter.Env
@@ -131,19 +133,25 @@ def main():
     )
 
     env = DummyVecEnv([lambda: env])
-    # env = VecTransposeImage(env)
-
+    
+    # --- KEY CHANGE IS HERE ---
+    # Replace 'MultiInputPolicy' with your custom policy class
     model = stable_baselines3.PPO(
-        'MultiInputPolicy', 
-        env, 
+        policy=ModularMultiInputActorCriticPolicy, 
+        env=env, 
         verbose=1, 
         tensorboard_log=args.outdir,
-        seed=args.seed)
+        seed=args.seed,
+        policy_kwargs={
+            "num_selves": 4 # Explicitly set the number of modules
+        }
+    )
+    # --- END OF KEY CHANGE ---
 
     analysis_callback = AnalysisCallback(log_interval=4096)
     callback = CallbackList([analysis_callback, checkpoint_callback])
     
-    print(f"Starting {args.env} training with seed {args.seed}. Logs in {args.outdir}")  
+    print(f"Starting {args.env} training with MODULAR PPO and seed {args.seed}. Logs in {args.outdir}")  
     
     model.learn(
         total_timesteps=int(args.steps), 
@@ -151,6 +159,7 @@ def main():
     )
     print(f"{args.env} training finished.")
 
+    # ... (rest of the file remains the same)
     print("\n--- Checking Model Parameters ---")
     for name, param in model.policy.named_parameters():
         if param.requires_grad:
@@ -164,15 +173,11 @@ def main():
 
     try:
         final_log_path = model.logger.dir
-    
         os.makedirs(final_log_path, exist_ok=True)
-        
         with open(f"{final_log_path}/{args.env}_seed{args.seed}_metrics.txt", 'w') as f:
             for key, value in metrics.items():
                 f.write(f"{key}: {value}\n")
-                
         model.save(f"{final_log_path}/{args.env}_seed{args.seed}_model")
-        
         print(f"Metrics and model saved successfully to {final_log_path}")
     except Exception as e:
         print(f"Warning: Could not save to {args.outdir}: {e}")
